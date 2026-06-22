@@ -7,6 +7,14 @@ terraform {
       version = "~> 6.0"
     }
   }
+  backend "s3" {
+    bucket       = "jaechul-lab"
+    key          = "terraform/ec2/terraform.tfstate"
+    region       = "ap-northeast-2"
+    use_lockfile = true
+  }
+}
+
 }
 
 provider "aws" {
@@ -43,6 +51,8 @@ resource "aws_instance" "test" {
     Name = var.instance_name
   }
 }
+
+
 
 output "vpc_id" {
   value = data.aws_vpc.default.id
