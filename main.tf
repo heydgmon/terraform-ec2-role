@@ -10,7 +10,7 @@ terraform {
 }
 
 provider "aws" {
-  region = "ap-northeast-2"
+  region = var.aws_region
 }
 
 data "aws_vpc" "default" {
@@ -36,11 +36,11 @@ data "aws_ami" "amazon_linux_2023" {
 
 resource "aws_instance" "test" {
   ami           = data.aws_ami.amazon_linux_2023.id
-  instance_type = "t3.micro"
+  instance_type = var.instance_type
   subnet_id     = data.aws_subnets.default.ids[0]
 
   tags = {
-    Name = "github-actions-terraform-ec2"
+    Name = var.instance_name
   }
 }
 
