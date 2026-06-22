@@ -7,14 +7,13 @@ terraform {
       version = "~> 6.0"
     }
   }
+
   backend "s3" {
     bucket       = "jaechul-lab"
     key          = "terraform/ec2/terraform.tfstate"
     region       = "ap-northeast-2"
     use_lockfile = true
   }
-}
-
 }
 
 provider "aws" {
