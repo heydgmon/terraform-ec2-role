@@ -71,7 +71,6 @@ resource "aws_instance" "test" {
   ami                         = data.aws_ami.amazon_linux_2023.id
   instance_type               = var.instance_type
   subnet_id                   = data.aws_subnets.default.ids[0]
-  availability_zone           = var.availability_zone
   vpc_security_group_ids      = [aws_security_group.ec2_sg.id]
   key_name                    = var.key_name
   associate_public_ip_address = true
