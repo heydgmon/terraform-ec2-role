@@ -30,8 +30,6 @@ jobs:
         run: terraform init
       - name: Terraform State List
         run: terraform state list
-      - name: Terraform State Show EC2
-        run: terraform state show aws_instance.test
       - name: Terraform Plan
         run: terraform plan
 
