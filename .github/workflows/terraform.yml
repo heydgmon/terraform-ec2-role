@@ -79,7 +79,6 @@ jobs:
         run: pip install ansible boto3 botocore
 
       - name: Run Ansible via SSM
-        if: steps.plan.outputs.exitcode != '0'
         run: |
-          INSTANCE_ID=$(terraform output -raw ec2_id)
-          ansible-playbook -i inventory.yml playbook.yml -e "instance_id=$INSTANCE_ID"
+         INSTANCE_ID=$(terraform output -raw ec2_id)
+         ansible-playbook -i inventory.yml playbook.yml -e "instance_id=$INSTANCE_ID" -v
