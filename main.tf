@@ -74,14 +74,15 @@ resource "aws_instance" "test" {
   vpc_security_group_ids      = [aws_security_group.ec2_sg.id]
   key_name                    = var.key_name
   associate_public_ip_address = true
+  iam_instance_profile        = aws_iam_instance_profile.ssm_profile.name
 
-  user_data = <<-EOF
+  #  user_data = <<-EOF
               #!/bin/bash
-              dnf update -y
-              dnf install -y git yum-utils
-              dnf config-manager --add-repo https://rpm.releases.hashicorp.com/AmazonLinux/hashicorp.repo
-              dnf install -y terraform
-              EOF
+  #            dnf update -y
+  #            dnf install -y git yum-utils
+  #            dnf config-manager --add-repo https://rpm.releases.hashicorp.com/AmazonLinux/hashicorp.repo
+  #            dnf install -y terraform
+  #            EOF
 
   tags = {
     Name = var.instance_name
