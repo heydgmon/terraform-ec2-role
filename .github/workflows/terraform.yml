@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+  workflow_dispatch:
 
 permissions:
   id-token: write
@@ -17,8 +18,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # 1) Terraform provider 캐시
+      - name: Cache Terraform providers
+        uses: actions/cache@v4
+        with:
+          path: ~/.terraform.d/plugin-cache
+          key: terraform-providers-${{ hashFiles('**/.terraform.lock.hcl') }}
+          restore-keys: terraform-providers-
+
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
+
+      - name: Set TF plugin cache dir
+        run: |
+          mkdir -p ~/.terraform.d/plugin-cache
+          echo 'plugin_cache_dir = "$HOME/.terraform.d/plugin-cache"' > ~/.terraformrc
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -28,24 +42,44 @@ jobs:
 
       - name: Terraform Init
         run: terraform init
-      - name: Terraform State List
-        run: terraform state list
+
+      # 2) 변경 없으면 apply/ansible 스킵
       - name: Terraform Plan
-        run: terraform plan
+        id: plan
+        run: |
+          terraform plan -detailed-exitcode -out=tfplan || echo "exitcode=$?" >> "$GITHUB_OUTPUT"
 
       - name: Terraform Apply
-        run: terraform apply -auto-approve
+        if: steps.plan.outputs.exitcode != '0'
+        run: terraform apply -auto-approve tfplan
+
+      # 3) session-manager-plugin 캐시
+      - name: Cache session-manager-plugin
+        id: cache-ssm-plugin
+        uses: actions/cache@v4
+        with:
+          path: session-manager-plugin.deb
+          key: ssm-plugin-v1
+
+      - name: Download session-manager-plugin
+        if: steps.cache-ssm-plugin.outputs.cache-hit != 'true'
+        run: curl -s "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/ubuntu_64bit/session-manager-plugin.deb" -o "session-manager-plugin.deb"
 
       - name: Install session-manager-plugin
-        run: |
-                curl "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/ubuntu_64bit/session-manager-plugin.deb" -o "session-manager-plugin.deb"
-                sudo dpkg -i session-manager-plugin.deb
+        run: sudo dpkg -i session-manager-plugin.deb
+
+      # 4) pip 패키지 캐시
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
 
       - name: Install Ansible & boto3
-        run: |
-                pip install ansible boto3 botocore
+        run: pip install ansible boto3 botocore
 
       - name: Run Ansible via SSM
+        if: steps.plan.outputs.exitcode != '0'
         run: |
-                INSTANCE_ID=$(terraform output -raw ec2_id)
-                ansible-playbook -i inventory.yml playbook.yml -e "instance_id=$INSTANCE_ID"
+          INSTANCE_ID=$(terraform output -raw ec2_id)
+          ansible-playbook -i inventory.yml playbook.yml -e "instance_id=$INSTANCE_ID"
