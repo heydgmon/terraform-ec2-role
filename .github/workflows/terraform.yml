@@ -97,13 +97,6 @@ jobs:
           pip install ansible boto3 botocore
           ansible-galaxy collection install amazon.aws
 
-      # Wait for the instance to pass EC2 checks; Ansible waits for SSM.
-      - name: Wait for EC2 status checks
-        run: |
-          INSTANCE_ID=$(terraform output -raw ec2_id)
-          echo "Waiting for instance $INSTANCE_ID status checks..."
-          aws ec2 wait instance-status-ok --instance-ids "$INSTANCE_ID"
-
       - name: Run Ansible via SSM
         run: |
           INSTANCE_ID=$(terraform output -raw ec2_id)
