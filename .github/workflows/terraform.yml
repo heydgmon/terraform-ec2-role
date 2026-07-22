@@ -100,9 +100,23 @@ jobs:
         run: |
           INSTANCE_ID=$(terraform output -raw ec2_id)
           echo "Waiting for instance $INSTANCE_ID to register with SSM..."
-          aws ssm wait instance-online --instance-information-filter-list key=InstanceIds,valueSet=$INSTANCE_ID \
-            || aws ssm wait instance-online --filters "Key=InstanceIds,Values=$INSTANCE_ID" \
-            || sleep 30
+          for i in {1..30}; do
+            STATUS=$(aws ssm describe-instance-information \
+              --filters "Key=InstanceIds,Values=$INSTANCE_ID" \
+              --query "InstanceInformationList[0].PingStatus" \
+              --output text)
+
+            if [ "$STATUS" = "Online" ]; then
+              echo "Instance $INSTANCE_ID is online in SSM."
+              exit 0
+            fi
+
+            echo "SSM status: $STATUS. Retrying in 10 seconds..."
+            sleep 10
+          done
+
+          echo "Instance $INSTANCE_ID did not become online in SSM in time."
+          exit 1
 
       - name: Run Ansible via SSM
         run: |
